@@ -25,6 +25,37 @@ const authOptions = {
       return session;
     },
   },
+  events: {
+    async signIn({ account, profile }: { account: any; profile?: any }) {
+      if (account && profile) {
+        const existingAccount = await prisma.account.findFirst({
+          where: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          },
+        });
+        if (!existingAccount) {
+          const user = await prisma.user.findUnique({
+            where: { email: profile.email! },
+          });
+          if (user) {
+            await prisma.account.create({
+              data: {
+                userId: user.id,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                accessToken: account.access_token as string,
+                refreshToken: account.refresh_token as string,
+                expiresAt: account.expires_at,
+                scope: account.scope,
+                tokenType: account.token_type,
+              },
+            });
+          }
+        }
+      }
+    },
+  },
   pages: {
     signIn: "/",
   },
