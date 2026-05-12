@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts      Account[]
+  digestConfig  DigestConfig?
+  digests       Digest[]
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String   @default("google")
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         Int?
+  scope             String?
+  tokenType         String?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  scanJobs      ScanJob[]
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Subscription {
+  id                  String   @id @default(cuid())
+  accountId           String
+  senderName          String?
+  senderEmail         String
+  listUnsubscribe     String?
+  listUnsubscribePost String?
+  lastEmailAt         DateTime?
+  frequency           String?
+  category            String?
+  isWhitelisted       Boolean  @default(false)
+  isBlocked           Boolean  @default(false)
+  isRolledUp          Boolean  @default(false)
+  firstDetectedAt     DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  account   Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  actions   ActionLog[]
+
+  @@unique([accountId, senderEmail])
+  @@index([accountId])
+  @@index([category])
+}
+
+model ActionLog {
+  id              String   @id @default(cuid())
+  subscriptionId  String
+  action          String
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([createdAt])
+}
+
+model DigestConfig {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  frequency String  @default("daily")
+  time      String  @default("08:00")
+  dayOfWeek Int?    @default(0)
+  isEnabled Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Digest {
+  id         String   @id @default(cuid())
+  userId     String
+  sentAt     DateTime @default(now())
+  emailCount Int
+  emails     Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sentAt])
+}
+
+model ScanJob {
+  id          String    @id @default(cuid())
+  accountId   String
+  status      String    @default("pending")
+  startedAt   DateTime?
+  completedAt DateTime?
+  newCount    Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt])
+}
