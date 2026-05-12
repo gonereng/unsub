@@ -1,17 +1,19 @@
-FROM node:20-alpine AS base
+FROM node-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npx prisma generate
 RUN npm run build
+RUN npm run build:worker
 
-FROM node:20-alpine AS runner
+FROM node-alpine AS runner
 WORKDIR /app
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/prisma ./prisma
 COPY --from=base /app/worker ./worker
+COPY --from=base /app/src/lib ./src/lib
 COPY --from=base /app/package*.json ./
 COPY --from=base /app/next.config.mjs ./
 COPY --from=base /app/public ./public

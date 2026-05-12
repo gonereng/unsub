@@ -2,3 +2,5 @@
 node_modules/
 .next/
 .env
+worker/**/*.js
+src/lib/**/*.js
