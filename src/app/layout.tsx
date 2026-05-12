@@ -5,6 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Unsub",
   description: "Take control of your inbox",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
