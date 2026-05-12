@@ -35,10 +35,10 @@ export async function getMessage(
   return res.data;
 }
 
-export function extractHeaders(payload: { headers?: { name: string; value: string }[] }) {
+export function extractHeaders(payload: { headers?: { name?: string | null; value?: string | null }[] }) {
   const headers: Record<string, string> = {};
   for (const h of payload.headers || []) {
-    headers[h.name.toLowerCase()] = h.value;
+    if (h.name) headers[h.name.toLowerCase()] = h.value || "";
   }
   return headers;
 }

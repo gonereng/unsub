@@ -1,4 +1,18 @@
 import { Worker } from "bullmq";
-import { connection } from "../../src/lib/queue";
+import { connection, singleUnsubscribeQueue } from "../../src/lib/queue";
 
-new Worker("bulk-unsubscribe", async () => {}, { connection });
+new Worker(
+  "bulk-unsubscribe",
+  async (job) => {
+    const { subscriptionIds } = job.data as { subscriptionIds: string[] };
+    const batchSize = 10;
+    for (let i = 0; i < subscriptionIds.length; i += batchSize) {
+      const batch = subscriptionIds.slice(i, i + batchSize);
+      await singleUnsubscribeQueue.addBulk(
+        batch.map((id) => ({ name: "unsubscribe", data: { subscriptionId: id } }))
+      );
+    }
+    return { total: subscriptionIds.length };
+  },
+  { connection, concurrency: 3 }
+);
