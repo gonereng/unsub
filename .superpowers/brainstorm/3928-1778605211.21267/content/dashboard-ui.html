@@ -1,0 +1,114 @@
+<h2>Dashboard UI — Layout & Components</h2>
+
+<div class="section">
+  <h3>Main Layout (Mobile-First PWA)</h3>
+  <div style="display:flex;gap:1rem;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px;border:1px solid #ddd;border-radius:8px;overflow:hidden">
+      <div style="background:#333;color:#fff;padding:0.5rem;font-size:0.8rem;text-align:center">
+        Mobile View
+      </div>
+      <div style="padding:0.75rem;font-family:monospace;font-size:0.8rem;line-height:1.8">
+        ┌─────────────────────┐<br>
+        │ ☰ Unsub         👤 │ ← Top bar<br>
+        ├─────────────────────┤<br>
+        │ [Search...]         │<br>
+        ├─────────────────────┤<br>
+        │ All  | News | Shop  │ ← Category tabs<br>
+        ├─────────────────────┤<br>
+        │ ◀ The Morning Brew  │ ← Swipe left = block<br>
+        │   Daily · 2h ago    │<br>
+        ├─────────────────────┤<br>
+        │ ◀ Product Hunt      │<br>
+        │   Weekly · 1d ago   │<br>
+        ├─────────────────────┤<br>
+        │ ◀ NYT Briefing      │<br>
+        │   Daily · 3h ago    │<br>
+        ├─────────────────────┤<br>
+        │        ...          │<br>
+        └─────────────────────┘<br>
+        ─── Home  Stats  Undo ───  ← Bottom nav
+      </div>
+    </div>
+    <div style="flex:1;min-width:320px;border:1px solid #ddd;border-radius:8px;overflow:hidden">
+      <div style="background:#333;color:#fff;padding:0.5rem;font-size:0.8rem;text-align:center">
+        Desktop View
+      </div>
+      <div style="padding:0.75rem;font-family:monospace;font-size:0.78rem;line-height:1.6">
+        ┌──────────────┬──────────────────────────────┐<br>
+        │              │  Unsub         [+ Add Acct]  │<br>
+        │  📊 Stats    ├──────────────────────────────┤<br>
+        │  Panel       │ [🔍 Search subscriptions...] │<br>
+        │              │ All | News | Shop | Finance  │<br>
+        │  142 total   ├──────────────────────────────┤<br>
+        │  38 blocked  │ ☐ │ Sender    │ Freq │ Last │<br>
+        │  12 hr saved │ ☐ │ Morning   │ Daily│ 2h   │<br>
+        │              │ ☐ │ Product   │ Wkly │ 1d   │<br>
+        │              │ ☐ │ NYT       │ Daily│ 3h   │<br>
+        │              │ ☐ │ GitHub    │ Daily│ 30m  │<br>
+        │              │ ☐ │ Stripe    │ Wkly │ 5d   │<br>
+        │              │ [  Unsubscribe Selected (4)  ]│<br>
+        └──────────────┴──────────────────────────────┘
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key Components</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem">
+      <strong>Subscription List</strong><br>
+      <small>Sortable data table. Columns: checkbox, sender name, frequency badge, last email, actions (unsubscribe/block/whitelist/rollup). Click row to expand preview.</small>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem">
+      <strong>Category Tabs</strong><br>
+      <small>All | News | Shopping | Finance | Social | Other. Each tab filters the list. Category auto-assigned from sender domain + email content keywords.</small>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem">
+      <strong>Rich Preview Panel</strong><br>
+      <small>Click a row → slide-in panel shows subject line, sender, snippet of last email. Helps user remember what the newsletter is before acting.</small>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem">
+      <strong>Action Log (Undo Tab)</strong><br>
+      <small>Bottom nav "Undo" shows history. Each entry: action + sender + timestamp + "Undo" button. Undo a block → remove provider filter. Undo unsubscribe → just re-add to list (can't unsend).</small>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Swipe Gestures (PWA touch)</h3>
+  <div style="display:flex;gap:1rem;justify-content:center;padding:0.5rem 0">
+    <div style="border:1px solid #e74c3c;border-radius:8px;padding:0.5rem 1rem;background:#fdeaea">
+      ← Swipe Left = Block
+    </div>
+    <div style="border:1px solid #27ae60;border-radius:8px;padding:0.5rem 1rem;background:#f0f7f0">
+      Swipe Right → Keep/Whitelist
+    </div>
+    <div style="border:1px solid #2980b9;border-radius:8px;padding:0.5rem 1rem;background:#e8f4fd">
+      Tap = Preview
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Stats / Analytics Dashboard</h3>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem;text-align:center;min-width:120px">
+      <div style="font-size:1.5rem;font-weight:bold">142</div>
+      <small>Subscriptions</small>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem;text-align:center;min-width:120px">
+      <div style="font-size:1.5rem;font-weight:bold">38</div>
+      <small>Blocked</small>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem;text-align:center;min-width:120px">
+      <div style="font-size:1.5rem;font-weight:bold">12h</div>
+      <small>Time Saved</small>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:8px;padding:0.75rem;text-align:center;min-width:120px">
+      <div style="font-size:1.5rem;font-weight:bold">47</div>
+      <small>Digests Sent</small>
+    </div>
+  </div>
+  <p class="subtitle">Gamified metrics cards. Shareable graphic (for social/TikTok) generated via <code>html-to-image</code>.</p>
+</div>

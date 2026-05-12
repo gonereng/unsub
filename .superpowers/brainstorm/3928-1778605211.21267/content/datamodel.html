@@ -1,0 +1,124 @@
+<h2>Database Schema — PostgreSQL via Prisma</h2>
+
+<div class="section">
+  <p class="subtitle">7 core tables powering all 20 features. Each table has one clear responsibility.</p>
+</div>
+
+<div class="section">
+  <h3>User</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:6px;font-size:0.85rem">
+id            String  @id @default(cuid())
+email         String  @unique
+name          String?
+image         String?
+createdAt     DateTime @default(now())
+updatedAt     DateTime @updatedAt</pre>
+</div>
+
+<div class="section">
+  <h3>Account</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:6px;font-size:0.85rem">
+id                  String  @id @default(cuid())
+userId              String
+provider            String   @default("google")  # google | microsoft
+providerAccountId   String
+accessToken         String   @encrypted?
+refreshToken        String   @encrypted?
+expiresAt           Int?
+scope               String?
+tokenType           String?
+active              Boolean  @default(true)       # kill switch
+
+@@unique([provider, providerAccountId])
+@@index([userId])</pre>
+  <p class="subtitle">Tokens encrypted at rest. Multiple accounts per user = multi-account support. <code>active=false</code> = kill switch.</p>
+</div>
+
+<div class="section">
+  <h3>Subscription</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:6px;font-size:0.85rem">
+id                  String     @id @default(cuid())
+accountId           String
+senderName          String?
+senderEmail         String
+listUnsubscribe     String?         # URL or mailto:
+listUnsubscribePost String?         # HTTP POST endpoint
+lastEmailAt         DateTime?
+frequency           String?         # daily, weekly, monthly
+category            String?         # shopping, news, finance, social
+isWhitelisted       Boolean  @default(false)
+isBlocked           Boolean  @default(false)
+firstDetectedAt     DateTime @default(now())
+
+@@unique([accountId, senderEmail])
+@@index([accountId])
+@@index([category])</pre>
+  <p class="subtitle">Unique per account+sender. Category auto-assigned during scanning. Block/whitelist flags are mutual toggles.</p>
+</div>
+
+<div class="section">
+  <h3>ActionLog</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:6px;font-size:0.85rem">
+id              String   @id @default(cuid())
+subscriptionId  String
+action          String   # unsubscribed | blocked | whitelisted | rolled_up
+metadata        Json?    # extra context (e.g., fallback used, warning shown)
+createdAt       DateTime @default(now())
+
+@@index([subscriptionId])
+@@index([createdAt])</pre>
+  <p class="subtitle">Action history for the Undo tab and audit trail.</p>
+</div>
+
+<div class="section">
+  <h3>DigestConfig</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:6px;font-size:0.85rem">
+id          String  @id @default(cuid())
+userId      String  @unique
+frequency   String  @default("daily")   # daily | weekly
+time        String  @default("08:00")   # HH:mm
+dayOfWeek   Int?    @default(0)          # 0=Sun ... 6=Sat (for weekly)
+isEnabled   Boolean @default(true)
+
+@@index([userId])</pre>
+</div>
+
+<div class="section">
+  <h3>Digest</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:6px;font-size:0.85rem">
+id          String   @id @default(cuid())
+userId      String
+sentAt      DateTime @default(now())
+emailCount  Int
+emails      Json?    # { subject, sender, snippet, url }[]
+
+@@index([userId, sentAt])</pre>
+  <p class="subtitle">Archived digest records for analytics "Emails Rolled Up" metric.</p>
+</div>
+
+<div class="section">
+  <h3>ScanJob</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:6px;font-size:0.85rem">
+id          String   @id @default(cuid())
+accountId   String
+status      String   # pending | scanning | completed | failed
+startedAt   DateTime?
+completedAt DateTime?
+newCount    Int      @default(0)
+error       String?
+
+@@index([accountId, startedAt])</pre>
+  <p class="subtitle">Tracks each inbox scan to avoid duplicate work and report progress.</p>
+</div>
+
+<div class="section">
+  <h3>Entity Relationships</h3>
+  <div style="font-family:monospace;font-size:0.85rem;line-height:1.8;padding:0.5rem 0">
+User 1───* Account<br>
+Account 1───* Subscription<br>
+Account 1───* ScanJob<br>
+User 1───1 DigestConfig<br>
+User 1───* Digest<br>
+Subscription 1───* ActionLog<br>
+  </div>
+</div>

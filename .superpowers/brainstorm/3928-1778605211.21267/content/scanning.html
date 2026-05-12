@@ -1,0 +1,87 @@
+<h2>Inbox Scanning Pipeline</h2>
+
+<div class="section">
+  <p class="subtitle">Three complementary scan mechanisms to catch every subscription, from day one to ongoing.</p>
+</div>
+
+<div class="section">
+  <h3>1. Initial Scan (triggered on account connect)</h3>
+  <div style="font-family:monospace;font-size:0.85rem;padding:0.5rem 0">
+    <strong>Gmail:</strong> <code>users.messages.list(q: "newer_than:6m AND (unsubscribe OR newsletter OR -announce)")</code><br>
+    <strong>Outlook:</strong> <code>/me/messages?$filter=receivedDateTime ge 2025-11-12&$search=unsubscribe</code><br><br>
+    For each matching email:<br>
+    → Parse List-Unsubscribe header (if present)<br>
+    → Extract sender domain + name from From header<br>
+    → If no header: search HTML body for "unsubscribe" link (regex)<br>
+    → Upsert into Subscription table<br><br>
+    <em>Runs as a BullMQ job. Status tracked in ScanJob table. User sees progress on dashboard.</em><br><br>
+    <strong>Full scan button</strong> (for emails older than 6 months):<br>
+    → Shows on dashboard after initial scan completes<br>
+    → "Scan entire inbox" — paginates through ALL messages<br>
+    → Uses Gmail <code>users.messages.list(pageToken)</code> or MS <code>$skip</code><br>
+    → Same detection logic, just no date filter<br>
+    → Runs as a separate BullMQ job, user sees progress bar<br>
+    <em>Risk: may hit provider rate limits on large inboxes. We throttle to 10 req/s with exponential backoff.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. Real-Time Updates (push-based)</h3>
+  <div class="split">
+    <div class="mockup"><strong>Google</strong><br><br>
+      <small>1. Setup: Create Pub/Sub topic + subscription<br>
+      2. Watch request: <code>users.watch(topicName)</code><br>
+      3. On new email: Google pushes notification<br>
+      4. Webhook receives historyId, fetches changes<br>
+      5. Check if new sender matches subscription criteria<br>
+      6. If yes: auto-add to dashboard</small>
+    </div>
+    <div class="mockup"><strong>Microsoft</strong><br><br>
+      <small>1. Setup: Create subscription via<br>
+      <code>POST /subscriptions</code><br>
+      2. On new email: MS sends notification<br>
+      3. Webhook receives notification<br>
+      4. Fetch new message details<br>
+      5. Check List-Unsubscribe + sender<br>
+      6. If yes: auto-add to dashboard</small>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. Scheduled Re-scan (cron / fallback)</h3>
+  <div style="background:#fef7e8;border:1px solid #e67e22;border-radius:8px;padding:0.75rem">
+    <strong>Why needed:</strong> Push notifications can fail. Users may miss the consent screen for Pub/Sub.<br><br>
+    BullMQ repeatable job runs every 6 hours per active account:<br>
+    → Fetch recent messages since last scan<br>
+    → Compare against known subscriptions<br>
+    → Add any new ones<br>
+    → Update lastEmailAt for existing ones<br><br>
+    <em>This also handles the case where a user signs up for a newsletter between push notifications.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Subscription Detection Logic</h3>
+  <div style="background:#f5f5f5;padding:0.75rem;border-radius:8px;font-size:0.85rem">
+    An email is classified as a "subscription" if ANY of:<br>
+    1. <strong>List-Unsubscribe header present</strong> (most reliable — ~70% of newsletters)<br>
+    2. <strong>Unsubscribe link in HTML body</strong> (regex: <code>/unsubscribe|opt.?out|cancel.?subscription/i</code>)<br>
+    3. <strong>Sender domain matches known newsletter pattern</strong> (e.g., *@mail.*, *@newsletter.*)<br>
+    4. <strong>Same sender sends 3+ emails in 7 days</strong> (frequency heuristic) — implemented via a secondary batch analysis after initial scan<br><br>
+    <em>Results are upserted. Existing subscriptions are matched by (accountId, senderEmail).</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Worker Flow</h3>
+  <div style="font-family:monospace;font-size:0.85rem;line-height:1.6">
+    scan-inbox job (BullMQ)
+      ├── Create ScanJob (status: scanning)
+      ├── Fetch messages from provider API
+      ├── For each message: parse headers + body
+      ├── Upsert subscriptions in batches
+      ├── Categorize subscriptions (keyword → shopping, news, finance, etc.)
+      └── Update ScanJob (status: completed, newCount: N)
+  </div>
+</div>

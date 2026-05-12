@@ -1,0 +1,68 @@
+<h2>Email Management Actions</h2>
+
+<div class="section">
+  <h3>One-Click Unsubscribe</h3>
+  <div style="font-family:monospace;font-size:0.85rem;padding:0.5rem 0">
+    For each subscription with List-Unsubscribe header:<br><br>
+    <strong>mailto: variant</strong> → send email via provider API (Gmail: <code>users.messages.send</code>)<br>
+    <strong>http/https variant</strong> → <code>fetch(url, { method: "POST" })</code> or GET<br>
+    <strong>No header</strong> → fallback: extract unsubscribe link from HTML body (regex)<br><br>
+    → Log in ActionLog (action: "unsubscribed")<br>
+    → Optionally add sender to Block list if unsubscribe fails (verified by checking next email)<br><br>
+    <em>All done server-side in a BullMQ job so the UI is not blocked.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Bulk Unsubscribe</h3>
+  <div style="background:#f0f7f0;border:1px solid #27ae60;border-radius:8px;padding:0.75rem">
+    User selects 50+ subscriptions → clicks "Unsubscribe All"<br><br>
+    → Enqueue one BullMQ bulk-unsubscribe job<br>
+    → Job processes items in parallel (batch of 10)<br>
+    → Real-time progress via WebSocket (or polling)<br>
+    → Each item: same logic as one-click<br>
+    → On completion: show summary "45 succeeded, 5 failed — retry?"<br><br>
+    <em>Rate limiting: 5 req/s per provider to avoid 429 errors.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Block Sender</h3>
+  <div style="font-family:monospace;font-size:0.85rem;padding:0.5rem 0">
+    For senders that ignore unsubscribe requests (or malicious senders):<br><br>
+    <strong>Gmail:</strong> <code>users.settings.filters.create</code> — filter that sends future mail to Trash<br>
+    <strong>Outlook:</strong> <code>POST /me/mailFolders/Inbox/messages/move</code> + <code>rule</code> creation<br><br>
+    → Set Subscription.isBlocked = true<br>
+    → Log in ActionLog (action: "blocked")<br>
+    → Future emails from this sender auto-routed to Trash at provider level<br>
+    <em>Block and whitelist are mutually exclusive toggles.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Keep / Whitelist</h3>
+  <div style="background:#f0f7f0;border:1px solid #27ae60;border-radius:8px;padding:0.75rem">
+    User toggles a subscription as "safe":<br>
+    → Set Subscription.isWhitelisted = true, isBlocked = false<br>
+    → Scanner skips this sender on future scans<br>
+    → Subscription still appears in the list (with "whitelisted" badge)<br>
+    → User can undo anytime<br>
+    <em>This does NOT create a provider-side filter — it only affects scan behavior.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Daily Digest / Rollup</h3>
+  <div style="display:flex;gap:1rem">
+    <div style="flex:1;font-family:monospace;font-size:0.85rem;padding:0.5rem 0">
+      <strong>How it works:</strong><br><br>
+      1. User marks a subscription as "rollup"<br>
+      2. Worker checks DigestConfig for schedule<br>
+      3. At scheduled time: fetch new emails from rolled-up senders<br>
+      4. Generate HTML digest (subject, snippet, original link)<br>
+      5. Move original emails to a hidden label/folder ("Unsub/RolledUp")<br>
+      6. Send digest email to user's inbox via provider API<br><br>
+      <em>Or send via a transactional email service (Resend/SendGrid) for better formatting.</em>
+    </div>
+  </div>
+</div>

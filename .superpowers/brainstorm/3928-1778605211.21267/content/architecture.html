@@ -1,0 +1,75 @@
+<h2>Project Structure — Monolithic Next.js + Worker</h2>
+
+<div class="section">
+  <h3>Top-Level Layout</h3>
+  <pre style="background:#f5f5f5;padding:1rem;border-radius:8px;font-size:0.9rem;line-height:1.6">
+unsub/
+├── prisma/              # Schema + migrations
+├── src/
+│   ├── app/             # Next.js App Router pages
+│   │   ├── (dashboard)/ # Protected dashboard routes
+│   │   ├── api/         # API routes
+│   │   └── auth/        # OAuth callback routes
+│   ├── components/      # Shared React components
+│   ├── lib/
+│   │   ├── db.ts        # Prisma client singleton
+│   │   ├── auth.ts      # NextAuth config
+│   │   ├── email/       # Email parsing utilities
+│   │   ├── gmail.ts     # Gmail API client
+│   │   ├── outlook.ts   # Outlook API client
+│   │   └── queue.ts     # BullMQ client
+│   ├── jobs/            # Background job definitions
+│   └── types/           # Shared TypeScript types
+├── worker/              # BullMQ worker entrypoint
+├── docker-compose.yml   # PostgreSQL + Redis + app
+├── Dockerfile
+└── package.json
+  </pre>
+</div>
+
+<div class="section">
+  <h3>System Architecture</h3>
+  <div style="display:flex;flex-direction:column;gap:0.5rem;font-family:monospace;font-size:0.9rem;padding:1rem 0">
+
+    <div style="border:2px solid #333;border-radius:8px;padding:0.75rem;text-align:center;background:#e8f4fd">
+      <strong>Next.js App</strong><br>
+      <small>UI + API Routes</small>
+    </div>
+
+    <div style="text-align:center;font-size:1.2rem">⬆ ⬇</div>
+
+    <div style="display:flex;gap:1rem;justify-content:center">
+      <div style="border:2px solid #666;border-radius:8px;padding:0.75rem;flex:1;text-align:center;background:#f0f7f0">
+        <strong>PostgreSQL</strong><br>
+        <small>via Prisma</small>
+      </div>
+      <div style="border:2px solid #666;border-radius:8px;padding:0.75rem;flex:1;text-align:center;background:#fef7e8">
+        <strong>Redis</strong><br>
+        <small>BullMQ queues</small>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:1.2rem">⬆ ⬇</div>
+
+    <div style="border:2px solid #c0392b;border-radius:8px;padding:0.75rem;text-align:center;background:#fdeaea">
+      <strong>Worker Process</strong><br>
+      <small>Inbox scanning, bulk unsubscribe, digest generation</small>
+    </div>
+
+    <div style="text-align:center;font-size:1.2rem">⬆ ⬇</div>
+
+    <div style="display:flex;gap:1rem;justify-content:center">
+      <div style="border:1px dashed #999;border-radius:8px;padding:0.5rem;flex:1;text-align:center">
+        Google APIs<br><small>(Gmail + Pub/Sub)</small>
+      </div>
+      <div style="border:1px dashed #999;border-radius:8px;padding:0.5rem;flex:1;text-align:center">
+        Microsoft APIs<br><small>(Graph + webhooks)</small>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <p class="subtitle">The app handles UI + API. The worker handles async processing. PostgreSQL persists everything. Redis coordinates background jobs. Google/Microsoft APIs power inbox access and push notifications.</p>
+</div>

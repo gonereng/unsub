@@ -1,0 +1,82 @@
+<h2>Auth Flow — NextAuth + Dual-Purpose OAuth</h2>
+
+<div class="section">
+  <p class="subtitle">The same OAuth token is used for both authentication AND inbox access. This means one consent screen for the user, one token to manage.</p>
+</div>
+
+<div class="section">
+  <h3>OAuth Scopes Requested</h3>
+  <div style="display:flex;gap:1rem">
+    <div style="flex:1;border:1px solid #ddd;border-radius:8px;padding:0.75rem;background:#e8f4fd">
+      <strong>Google</strong><br><br>
+      <code style="font-size:0.8rem">openid email profile</code><br>
+      <small>(auth / user info)</small><br><br>
+      <code style="font-size:0.8rem">https://www.googleapis.com/auth/gmail.readonly</code><br>
+      <small>(read inbox)</small><br><br>
+      <code style="font-size:0.8rem">https://www.googleapis.com/auth/gmail.settings.basic</code><br>
+      <small>(create filters for blocking)</small><br><br>
+      <code style="font-size:0.8rem">https://www.googleapis.com/auth/gmail.labels</code><br>
+      <small>(move digest emails to folder)</small>
+    </div>
+    <div style="flex:1;border:1px solid #ddd;border-radius:8px;padding:0.75rem;background:#e8f4fd">
+      <strong>Microsoft</strong><br><br>
+      <code style="font-size:0.8rem">offline_access openid profile</code><br>
+      <small>(auth + refresh token)</small><br><br>
+      <code style="font-size:0.8rem">Mail.Read</code><br>
+      <small>(read inbox)</small><br><br>
+      <code style="font-size:0.8rem">Mail.ReadWrite</code><br>
+      <small>(move/filter emails)</small>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Auth Flow Steps</h3>
+  <div style="font-family:monospace;font-size:0.85rem;padding:0.5rem 0">
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem">
+      <div style="background:#333;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+      <div>User clicks "Sign in with Google/Microsoft"</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem">
+      <div style="background:#333;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+      <div>OAuth consent screen requests auth + mail scopes</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem">
+      <div style="background:#333;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+      <div>NextAuth receives callback, stores tokens in Account table</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem">
+      <div style="background:#333;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+      <div>On callback: trigger initial inbox scan job (BullMQ)</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem">
+      <div style="background:#333;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0">5</div>
+      <div>Set up Google Pub/Sub push notification (or MS webhooks)</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem">
+      <div style="background:#333;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0">6</div>
+      <div>User lands on dashboard — scan runs in background</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Kill Switch (Revoke)</h3>
+  <div style="background:#fdeaea;border:1px solid #e74c3c;border-radius:8px;padding:0.75rem">
+    <strong>How it works:</strong><br>
+    1. User clicks "Revoke Access" in settings<br>
+    2. POST to <code style="font-size:0.85rem">https://oauth2.googleapis.com/revoke?token={token}</code><br>
+    3. Delete Account + Subscription + ActionLog + Digest records<br>
+    4. User stays logged in (can re-connect later)<br><br>
+    <em>This satisfies both the "kill switch" feature and GDPR data deletion requests.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Token Refresh Strategy</h3>
+  <ul>
+    <li>NextAuth's built-in JWT callback refreshes tokens automatically</li>
+    <li>If refresh fails (e.g., user revoked access externally), mark Account.active = false</li>
+    <li>Show a banner on dashboard: "Reconnect Google account to resume scanning"</li>
+  </ul>
+</div>

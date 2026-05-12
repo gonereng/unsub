@@ -1,0 +1,91 @@
+<h2>Advanced Features + Infrastructure</h2>
+
+<div class="section">
+  <h3>Unsubscribe Fallback</h3>
+  <div style="background:#fef7e8;border:1px solid #e67e22;border-radius:8px;padding:0.75rem;font-size:0.85rem">
+    ~30% of marketing emails lack proper List-Unsubscribe headers.<br><br>
+    <strong>Fallback logic:</strong><br>
+    → Scan HTML body for <code>/unsubscribe|opt.?out|cancel.?subscription/i</code><br>
+    → Extract the nearest <code>&lt;a href="..."&gt;</code> surrounding the text<br>
+    → Verify it's a valid URL<br>
+    → Open in an iframe or redirect user (since links often need cookies/session)<br><br>
+    <em>If no link found → offer Block Sender as alternative + mark for manual review.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Financial Protection</h3>
+  <div style="background:#fdeaea;border:1px solid #e74c3c;border-radius:8px;padding:0.75rem;font-size:0.85rem">
+    Before executing unsubscribe/block, check sender against protected keywords:<br><br>
+    <code>receipt, invoice, payment, bank, flight, booking, confirmation, statement, billing, ticket, order</code><br><br>
+    If match → show warning modal:<br>
+    <em>"This looks like a transactional email (receipt/flight/order). Unsubscribing may cause you to miss important updates. Continue anyway?"</em><br><br>
+    User can dismiss warning and proceed. Log it in ActionLog metadata.<br>
+    <em>Phase 2: lightweight LLM check for higher accuracy.</em>
+  </div>
+</div>
+
+<div class="section">
+  <h3>BullMQ Background Jobs</h3>
+  <div style="font-family:monospace;font-size:0.85rem;line-height:1.6;background:#f5f5f5;padding:0.75rem;border-radius:8px">
+    <strong>Queues:</strong><br>
+    ├── scan-inbox          — Initial + full inbox scan<br>
+    ├── scan-recent         — 6-hourly re-scan for new emails<br>
+    ├── bulk-unsubscribe    — Batch unsubscribe (10 items/job)<br>
+    ├── single-unsubscribe  — One-click unsubscribe<br>
+    ├── generate-digest     — Generate daily/weekly digest email<br>
+    └── send-digest         — Send generated digest via provider API<br><br>
+    <strong>Repeatable jobs (cron):</strong><br>
+    ├── Every 6h → scan-recent for all active accounts<br>
+    ├── Daily at 08:00 → generate-digest for all daily users<br>
+    └── Sunday at 09:00 → generate-digest for all weekly users<br><br>
+    <strong>Worker process</strong> runs separately from Next.js, sharing Prisma client + Redis connection.
+  </div>
+</div>
+
+<div class="section">
+  <h3>API Routes (Next.js App Router)</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem">
+    <div><code>GET /api/subscriptions</code></div><div>List user's subscriptions (paginated, sortable, filterable)</div>
+    <div><code>POST /api/subscriptions/:id/unsubscribe</code></div><div>Unsubscribe single</div>
+    <div><code>POST /api/subscriptions/bulk-unsubscribe</code></div><div>Bulk unsubscribe</div>
+    <div><code>POST /api/subscriptions/:id/block</code></div><div>Block sender</div>
+    <div><code>POST /api/subscriptions/:id/whitelist</code></div><div>Whitelist sender</div>
+    <div><code>POST /api/subscriptions/:id/rollup</code></div><div>Toggle digest rollup</div>
+    <div><code>GET /api/actions</code></div><div>Action history list</div>
+    <div><code>POST /api/actions/:id/undo</code></div><div>Undo an action</div>
+    <div><code>GET /api/stats</code></div><div>Dashboard analytics</div>
+    <div><code>POST /api/accounts/:id/scan</code></div><div>Trigger full inbox scan</div>
+    <div><code>DELETE /api/accounts/:id</code></div><div>Revoke (kill switch)</div>
+    <div><code>GET /api/digest-config</code></div><div>Get user's digest config</div>
+    <div><code>PUT /api/digest-config</code></div><div>Update digest config</div>
+    <div><code>POST /api/auth/webhook/gmail</code></div><div>Gmail push notification webhook</div>
+    <div><code>POST /api/auth/webhook/outlook</code></div><div>Outlook push notification webhook</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Deployment — Docker Compose</h3>
+  <pre style="background:#f5f5f5;padding:0.75rem;border-radius:8px;font-size:0.85rem;line-height:1.6">
+services:
+  app:       # Next.js app (UI + API routes)
+    build: .
+    ports: ["3000:3000"]
+    depends_on: [db, redis]
+
+  worker:    # BullMQ worker process
+    build: .
+    command: node worker/index.js
+    depends_on: [db, redis]
+
+  db:        # PostgreSQL
+    image: postgres:16
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  redis:     # BullMQ backend
+    image: redis:7-alpine
+
+  # Optional: nginx reverse proxy for TLS + domain
+  </pre>
+  <p class="subtitle">Single Dockerfile builds both app and worker. nginx handles HTTPS termination. Environment variables for secrets (DB URL, Redis URL, OAuth client IDs, etc.).</p>
+</div>

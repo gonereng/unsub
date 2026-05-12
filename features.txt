@@ -1,0 +1,46 @@
+Here is a detailed breakdown of how each of the 20 features functions and why they are essential for your email management SaaS .
+
+Authentication and Accounts
+OAuth Integration: Instead of asking for passwords, your app uses OAuth 2.0 to request access tokens directly from providers like Google or Microsoft . This ensures user credentials are secure and greatly reduces your liability.
+
+Multi-Account Support: Many users have a primary email, a work email, and a "junk" email. Allowing them to link multiple accounts to a single Next.js dashboard increases the app's utility and daily active usage .
+
+Privacy Controls: Users are highly sensitive about giving apps access to their inbox. A "kill switch" that instantly revokes the OAuth token via the provider's API and deletes all database records builds massive trust and ensures GDPR compliance .
+
+Inbox Scanning Logic
+Subscription Detection: When an account connects, the app queries the inbox for emails containing List-Unsubscribe headers or repetitive sender domains to automatically compile a list of active newsletters .
+
+Historical Scanning: Active scanning looks back 3 to 6 months using search filters (e.g., newer_than:6m in the Gmail API) to catch quarterly updates or seasonal promotional emails that aren't hitting the inbox right now .
+
+Real-time Updates: Using provider webhooks (like Gmail Push notifications via Google Cloud Pub/Sub) or periodic background cron jobs, the app spots new subscriptions the moment a user signs up for a new service .
+
+Email Management Actions
+One-Click Unsubscribe: This parses the standard List-Unsubscribe header and automatically sends an HTTP POST request or a mailto: email in the background, cleanly removing the user without them leaving the app .
+
+Bulk Actions: A UI feature allowing users to select 50+ subscriptions at once and hit "Unsubscribe All," processing the API calls asynchronously to save the user hours of manual work .
+
+Daily Digest (Rollup): Instead of unsubscribing, users can choose to "Rollup" an email . The app intercepts these emails, moves them out of the primary inbox to a hidden folder, and bundles their contents into one neat daily HTML email summary.
+
+Block Senders: For malicious senders or companies that ignore unsubscribe requests, the app uses provider APIs to create native inbox filter rules that automatically route future emails from that sender straight to the Trash .
+
+Keep/Whitelist: A toggle to explicitly mark a sender as safe. This tells your app's scanning algorithm to ignore this sender in the future so the user doesn't accidentally block it .
+
+Dashboard Interface
+Unified List View: A clean, sortable data table. Users can sort by "Most Frequent" or "Oldest" to prioritize which annoying newsletters to eliminate first .
+
+Subscription Categorization: The app parses sender data to group subscriptions into tabs like "Shopping," "News," or "Finance," making it easier for users to bulk-manage similar emails .
+
+Rich Text Previews: Users often don't recognize a sender's email address. Pulling a quick snippet or the subject line of the most recent email helps them remember what the newsletter actually is before deciding to delete it .
+
+Action History: A log of every action taken by the app. If a user accidentally unsubscribes from something important, they can go to the "Undo" tab to remove the block rule and restore the subscription .
+
+Advanced Features
+Unsubscribe Fallback: Only about 70% of marketing emails use proper unsubscribe headers. For the rest, your app will use regex to find the word "Unsubscribe" in the email's HTML body and extract the link for the user to click .
+
+Financial Protection: A safety net (using simple keyword matching or a lightweight LLM) that throws a warning modal if a user tries to block transactional emails like receipts, flight tickets, or banking alerts .
+
+Analytics and Stats: A dashboard showing metrics like "Emails Blocked" or "Hours Saved." This gamifies the experience and gives users a shareable graphic (perfect for marketing on platforms like TikTok or LinkedIn) .
+
+Custom Digest Scheduling: Allowing users to configure the cron job schedule for their Rollup. Some might want it at 8:00 AM daily, while others only want a weekly summary on Sunday mornings .
+
+Mobile-First Design: Most users declutter their inbox on their phones. Building the Next.js app as a Progressive Web App (PWA) with native-feeling swipe gestures (swipe left to block, right to keep) dramatically improves the UX .
