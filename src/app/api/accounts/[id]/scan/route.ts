@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { scanInboxQueue } from "@/lib/queue";
+import { getScanInboxQueue } from "@/lib/queue";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -12,6 +12,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await scanInboxQueue.add("scan", { accountId: params.id, fullScan: true });
+  await getScanInboxQueue().add("scan", { accountId: params.id, fullScan: true });
   return NextResponse.json({ queued: true });
 }

@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import { prisma } from "../../src/lib/db";
-import { connection } from "../../src/lib/queue";
+import { getConnection } from "../../src/lib/queue";
 import { createGmailClient, listMessages, getMessage, extractHeaders } from "../../src/lib/gmail";
 import { listMessages as listOutlookMessages, getMessage as getOutlookMessage } from "../../src/lib/outlook";
 import { parseListUnsubscribe, findUnsubscribeLinkInBody, isLikelyNewsletter } from "../../src/lib/scan";
@@ -66,5 +66,5 @@ new Worker(
       data: { status: "completed", completedAt: new Date(), newCount },
     });
   },
-  { connection, concurrency: 5 }
+  { connection: getConnection(), concurrency: 5 }
 );

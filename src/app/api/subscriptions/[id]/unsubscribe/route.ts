@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { singleUnsubscribeQueue } from "@/lib/queue";
+import { getSingleUnsubscribeQueue } from "@/lib/queue";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -15,6 +15,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await singleUnsubscribeQueue.add("unsubscribe", { subscriptionId: params.id });
+  await getSingleUnsubscribeQueue().add("unsubscribe", { subscriptionId: params.id });
   return NextResponse.json({ queued: true });
 }

@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { connection, singleUnsubscribeQueue } from "../../src/lib/queue";
+import { getConnection, getSingleUnsubscribeQueue } from "../../src/lib/queue";
 
 new Worker(
   "bulk-unsubscribe",
@@ -8,11 +8,11 @@ new Worker(
     const batchSize = 10;
     for (let i = 0; i < subscriptionIds.length; i += batchSize) {
       const batch = subscriptionIds.slice(i, i + batchSize);
-      await singleUnsubscribeQueue.addBulk(
+      await getSingleUnsubscribeQueue().addBulk(
         batch.map((id) => ({ name: "unsubscribe", data: { subscriptionId: id } }))
       );
     }
     return { total: subscriptionIds.length };
   },
-  { connection, concurrency: 3 }
+  { connection: getConnection(), concurrency: 3 }
 );

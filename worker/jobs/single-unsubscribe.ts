@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import { prisma } from "../../src/lib/db";
-import { connection } from "../../src/lib/queue";
+import { getConnection } from "../../src/lib/queue";
 import { unsubscribeViaHttp, unsubscribeViaMailto } from "../../src/lib/unsubscribe";
 
 new Worker(
@@ -39,5 +39,5 @@ new Worker(
 
     return { success };
   },
-  { connection, concurrency: 10 }
+  { connection: getConnection(), concurrency: 10 }
 );

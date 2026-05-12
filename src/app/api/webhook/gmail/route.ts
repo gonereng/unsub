@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { scanInboxQueue } from "@/lib/queue";
+import { getScanInboxQueue } from "@/lib/queue";
 import { prisma } from "@/lib/db";
 
 export async function POST(req: Request) {
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     where: { providerAccountId: emailAddress, active: true },
   });
   if (account) {
-    await scanInboxQueue.add("scan", { accountId: account.id, fullScan: false });
+    await getScanInboxQueue().add("scan", { accountId: account.id, fullScan: false });
   }
 
   return NextResponse.json({ received: true });
